@@ -1,3 +1,5 @@
+A minimal task manager that doesn't suck.
+
 ## Build Locally
 
 `npm run build`
