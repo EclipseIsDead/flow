@@ -44,10 +44,16 @@ export default function AddSheet() {
 
   function submit() {
     if (!form.title.trim()) return;
+
+    const submission = {
+      ...form,
+      date: form.date || new Date().toISOString().split("T")[0],
+    };
+
     if (editId) {
-      actions.updateTask(editId, form);
+      actions.updateTask(editId, submission);
     } else {
-      actions.addTask(form);
+      actions.addTask(submission);
     }
     actions.closeSheet();
   }

@@ -135,8 +135,6 @@ function SwipeRegion({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ── View indicator dots ───────────────────────────────────────────
-
 function ViewDots() {
   const { state, actions } = useApp();
   return (
