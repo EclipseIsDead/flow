@@ -7,9 +7,9 @@ export interface Subtask {
 export interface Task {
   id: string;
   title: string;
-  date: string | null;      // "YYYY-MM-DD"
+  date: string | null; // "YYYY-MM-DD"
   startTime: string | null; // "HH:MM" 24h
-  endTime: string | null;   // "HH:MM" 24h
+  endTime: string | null; // "HH:MM" 24h
   done: boolean;
   subtasks: Subtask[];
   createdAt: number;
@@ -24,3 +24,7 @@ export interface TaskFormValues {
   startTime: string;
   endTime: string;
 }
+
+export type ViewMode =
+  | { kind: "list" }
+  | { kind: "cal"; calMode: CalMode; calOffset: number };

@@ -1,87 +1,138 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
+
+interface FormValues {
+  title: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+}
+
+const EMPTY: FormValues = { title: "", date: "", startTime: "", endTime: "" };
 
 export default function AddSheet() {
   const { state, actions } = useApp();
   const { open, editId, prefillDate } = state.sheet;
 
-  const titleRef = useRef<HTMLInputElement>(null);
-  const dateRef  = useRef<HTMLInputElement>(null);
-  const startRef = useRef<HTMLInputElement>(null);
-  const endRef   = useRef<HTMLInputElement>(null);
+  const [form, setForm] = useState<FormValues>(EMPTY);
 
   useEffect(() => {
     if (!open) return;
+
     if (editId) {
       const t = state.tasks.find((t) => t.id === editId);
       if (t) {
-        if (titleRef.current) titleRef.current.value = t.title;
-        if (dateRef.current)  dateRef.current.value  = t.date ?? "";
-        if (startRef.current) startRef.current.value = t.startTime ?? "";
-        if (endRef.current)   endRef.current.value   = t.endTime ?? "";
+        setForm({
+          title: t.title,
+          date: t.date ?? "",
+          startTime: t.startTime ?? "",
+          endTime: t.endTime ?? "",
+        });
       }
     } else {
-      if (titleRef.current) titleRef.current.value = "";
-      if (dateRef.current)  dateRef.current.value  = prefillDate ?? "";
-      if (startRef.current) startRef.current.value = "";
-      if (endRef.current)   endRef.current.value   = "";
+      setForm({ ...EMPTY, date: prefillDate ?? "" });
     }
-    setTimeout(() => titleRef.current?.focus(), 100);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  function set(field: keyof FormValues) {
+    return (e: React.ChangeEvent<HTMLInputElement>) =>
+      setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  }
+
   function submit() {
-    const title = titleRef.current?.value.trim() ?? "";
-    if (!title) return;
-    const values = {
-      title,
-      date:      dateRef.current?.value  ?? "",
-      startTime: startRef.current?.value ?? "",
-      endTime:   endRef.current?.value   ?? "",
-    };
+    if (!form.title.trim()) return;
     if (editId) {
-      actions.updateTask(editId, values);
+      actions.updateTask(editId, form);
     } else {
-      actions.addTask(values);
+      actions.addTask(form);
     }
     actions.closeSheet();
   }
 
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") submit();
+  }
+
+  const isEdit = !!editId;
+
   return (
     <>
-      <div className={`sheet-overlay${open ? " sheet-overlay--open" : ""}`} onClick={actions.closeSheet} />
+      <div
+        className={`sheet-overlay${open ? " sheet-overlay--open" : ""}`}
+        onClick={actions.closeSheet}
+      />
       <div className={`sheet${open ? " sheet--open" : ""}`}>
         <div className="sheet-handle" />
         <div className="sheet-cmd-row">
-          <span className="sheet-cmd">task.{editId ? "update" : "create"}</span>{"({ }"}
+          <span className="sheet-cmd">task.{isEdit ? "update" : "create"}</span>
+          {"({ }"}
         </div>
 
         <div className="sheet-field">
-          <label className="sheet-label">title</label>
-          <input ref={titleRef} className="sheet-input" placeholder="What needs to happen?" autoComplete="off" onKeyDown={(e) => e.key === "Enter" && submit()} />
+          <label className="sheet-label" htmlFor="inp-title">
+            title
+          </label>
+          <input
+            id="inp-title"
+            className="sheet-input"
+            placeholder="What needs to happen?"
+            autoComplete="off"
+            value={form.title}
+            onChange={set("title")}
+            onKeyDown={handleKeyDown}
+          />
         </div>
 
         <div className="sheet-field">
-          <label className="sheet-label">date</label>
-          <input ref={dateRef} className="sheet-input" type="date" />
+          <label className="sheet-label" htmlFor="inp-date">
+            date
+          </label>
+          <input
+            id="inp-date"
+            className="sheet-input"
+            type="date"
+            value={form.date}
+            onChange={set("date")}
+          />
         </div>
 
         <div className="sheet-row2">
           <div className="sheet-field">
-            <label className="sheet-label">start time</label>
-            <input ref={startRef} className="sheet-input" type="time" />
+            <label className="sheet-label" htmlFor="inp-start">
+              start time
+            </label>
+            <input
+              id="inp-start"
+              className="sheet-input"
+              type="time"
+              value={form.startTime}
+              onChange={set("startTime")}
+            />
           </div>
           <div className="sheet-field">
-            <label className="sheet-label">end time</label>
-            <input ref={endRef} className="sheet-input" type="time" />
+            <label className="sheet-label" htmlFor="inp-end">
+              end time
+            </label>
+            <input
+              id="inp-end"
+              className="sheet-input"
+              type="time"
+              value={form.endTime}
+              onChange={set("endTime")}
+            />
           </div>
         </div>
 
         <div className="sheet-actions">
-          <button className="sheet-cancel" onClick={actions.closeSheet}>esc</button>
-          <button className="sheet-submit" onClick={submit}>→ {editId ? "update" : "add"}</button>
+          <button className="sheet-cancel" onClick={actions.closeSheet}>
+            esc
+          </button>
+          <button className="sheet-submit" onClick={submit}>
+            → {isEdit ? "update" : "add"}
+          </button>
         </div>
       </div>
     </>

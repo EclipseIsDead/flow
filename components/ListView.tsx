@@ -46,7 +46,9 @@ function GroupHeader({ dateKey }: { dateKey: string }) {
   }
   return (
     <div className="list-group-hdr">
-      <span className={`list-group-dot${isToday ? " list-group-dot--today" : ""}`} />
+      <span
+        className={`list-group-dot${isToday ? " list-group-dot--today" : ""}`}
+      />
       {label}
     </div>
   );
@@ -62,7 +64,10 @@ function TaskRow({ task }: { task: Task }) {
     <div className="task-row" onClick={() => actions.openDetail(task.id)}>
       <CheckBtn
         done={task.done}
-        onClick={(e) => { e.stopPropagation(); actions.toggleTask(task.id); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          actions.toggleTask(task.id);
+        }}
       />
       <div className="task-body">
         <div className={`task-title${task.done ? " task-title--done" : ""}`}>
@@ -76,7 +81,9 @@ function TaskRow({ task }: { task: Task }) {
           )}
           {dur && <span className="task-meta-dur">{fmtDur(dur)}</span>}
           {sub.length > 0 && (
-            <span className="task-meta-sub">{subDone}/{sub.length}</span>
+            <span className="task-meta-sub">
+              {subDone}/{sub.length}
+            </span>
           )}
           {!task.date && <span className="task-meta-unsched">no date</span>}
         </div>
@@ -103,7 +110,7 @@ export default function ListView() {
   }
 
   return (
-    <>
+    <div className="list-view">
       <div className="list-header">
         <span className="list-header-label">list</span>
         <span className="list-header-count">{pending} pending</span>
@@ -119,11 +126,13 @@ export default function ListView() {
           groups.map((g) => (
             <div key={g.key}>
               <GroupHeader dateKey={g.key} />
-              {g.tasks.map((t) => <TaskRow key={t.id} task={t} />)}
+              {g.tasks.map((t) => (
+                <TaskRow key={t.id} task={t} />
+              ))}
             </div>
           ))
         )}
       </div>
-    </>
+    </div>
   );
 }
