@@ -5,6 +5,7 @@ import {
   getFocusDate,
   getWeekDays,
   buildTaskMap,
+  sortTasksForDay,
   dateKey,
   todayKey,
   fmt12,
@@ -16,6 +17,10 @@ import {
   MONTH_SHORT,
 } from "@/lib/utils";
 import type { Task } from "@/types";
+
+const DEFAULT_DAY_HOURS = [
+  7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+];
 
 function ChipCheck({ task }: { task: Task }) {
   const { actions } = useApp();
@@ -81,21 +86,12 @@ function DayView() {
   const focus = getFocusDate("day", state.calOffset);
   const dk = dateKey(focus);
 
-  const dayTasks = state.tasks
-    .filter((t) => t.date === dk)
-    .sort((a, b) => {
-      if (!a.startTime && !b.startTime) return 0;
-      if (!a.startTime) return 1;
-      if (!b.startTime) return -1;
-      return a.startTime.localeCompare(b.startTime);
-    });
+  const dayTasks = sortTasksForDay(state.tasks.filter((t) => t.date === dk));
 
   const untimed = dayTasks.filter((t) => !t.startTime);
   const timed = dayTasks.filter((t) => t.startTime);
 
-  const hoursSet = new Set([
-    7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-  ]);
+  const hoursSet = new Set(DEFAULT_DAY_HOURS);
   timed.forEach((t) => hoursSet.add(parseInt(t.startTime!.split(":")[0])));
   const hours = [...hoursSet].sort((a, b) => a - b);
 
@@ -251,14 +247,9 @@ function WeekView() {
 
 function MonthDayPanel({ dayKey }: { dayKey: string }) {
   const { state, actions } = useApp();
-  const dayTasks = state.tasks
-    .filter((t) => t.date === dayKey)
-    .sort((a, b) => {
-      if (!a.startTime && !b.startTime) return 0;
-      if (!a.startTime) return 1;
-      if (!b.startTime) return -1;
-      return a.startTime.localeCompare(b.startTime);
-    });
+  const dayTasks = sortTasksForDay(
+    state.tasks.filter((task) => task.date === dayKey),
+  );
   if (!dayTasks.length) return null;
 
   return (

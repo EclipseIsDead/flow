@@ -4,16 +4,27 @@ import {
   createContext,
   useContext,
   useReducer,
-  useCallback,
+  useMemo,
   type Dispatch,
   type ReactNode,
 } from "react";
 import type { Task, Subtask, CalMode, Pane, TaskFormValues } from "@/types";
-import { newId } from "@/lib/utils";
+import {
+  createSubtask,
+  createTask,
+  normalizeTasks,
+  taskFieldsFromForm,
+} from "@/lib/tasks";
 
 // ── Types ─────────────────────────────────────────────────────────
 
-export type SyncState = "idle" | "loading" | "syncing" | "synced" | "error";
+export type SyncState =
+  | "idle"
+  | "loading"
+  | "syncing"
+  | "synced"
+  | "local"
+  | "error";
 
 export interface SheetState {
   open: boolean;
@@ -75,7 +86,7 @@ function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     // ── Data ──
     case "SET_TASKS":
-      return { ...state, tasks: action.tasks };
+      return { ...state, tasks: normalizeTasks(action.tasks) };
 
     case "SET_SYNC":
       return { ...state, syncState: action.state };
@@ -91,10 +102,7 @@ function reducer(state: AppState, action: Action): AppState {
             ? t
             : {
                 ...t,
-                title: action.values.title.trim(),
-                date: action.values.date || null,
-                startTime: action.values.startTime || null,
-                endTime: action.values.endTime || null,
+                ...taskFieldsFromForm(action.values),
               },
         ),
       };
@@ -212,16 +220,7 @@ function makeActions(dispatch: Dispatch<Action>) {
     setSyncState: (s: SyncState) => dispatch({ type: "SET_SYNC", state: s }),
 
     addTask: (values: TaskFormValues): Task => {
-      const task: Task = {
-        id: newId(),
-        title: values.title.trim(),
-        date: values.date || null,
-        startTime: values.startTime || null,
-        endTime: values.endTime || null,
-        done: false,
-        subtasks: [],
-        createdAt: Date.now(),
-      };
+      const task = createTask(values);
       dispatch({ type: "ADD_TASK", task });
       return task;
     },
@@ -233,7 +232,8 @@ function makeActions(dispatch: Dispatch<Action>) {
     toggleTask: (id: string) => dispatch({ type: "TOGGLE_TASK", id }),
 
     addSubtask: (taskId: string, title: string) => {
-      const sub: Subtask = { id: newId(), title: title.trim(), done: false };
+      const sub = createSubtask(title);
+      if (!sub) return;
       dispatch({ type: "ADD_SUBTASK", taskId, sub });
     },
 
@@ -265,7 +265,7 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const actions = useCallback(() => makeActions(dispatch), [dispatch])();
+  const actions = useMemo(() => makeActions(dispatch), [dispatch]);
 
   return (
     <AppContext.Provider value={{ state, dispatch, actions }}>

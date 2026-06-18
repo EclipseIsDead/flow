@@ -1,65 +1,77 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/context/AppContext";
+import type { Task, TaskFormValues } from "@/types";
 
-interface FormValues {
-  title: string;
-  date: string;
-  startTime: string;
-  endTime: string;
+const EMPTY_FORM: TaskFormValues = {
+  title: "",
+  date: "",
+  startTime: "",
+  endTime: "",
+};
+
+function formFromTask(task: Task): TaskFormValues {
+  return {
+    title: task.title,
+    date: task.date ?? "",
+    startTime: task.startTime ?? "",
+    endTime: task.endTime ?? "",
+  };
 }
-
-const EMPTY: FormValues = { title: "", date: "", startTime: "", endTime: "" };
 
 export default function AddSheet() {
   const { state, actions } = useApp();
   const { open, editId, prefillDate } = state.sheet;
 
-  const [form, setForm] = useState<FormValues>(EMPTY);
+  const [form, setForm] = useState<TaskFormValues>(EMPTY_FORM);
+  const loadedFormKey = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!open) return;
-
-    if (editId) {
-      const t = state.tasks.find((t) => t.id === editId);
-      if (t) {
-        setForm({
-          title: t.title,
-          date: t.date ?? "",
-          startTime: t.startTime ?? "",
-          endTime: t.endTime ?? "",
-        });
-      }
-    } else {
-      setForm({ ...EMPTY, date: prefillDate ?? "" });
+    if (!open) {
+      loadedFormKey.current = null;
+      setForm(EMPTY_FORM);
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
 
-  function set(field: keyof FormValues) {
-    return (e: React.ChangeEvent<HTMLInputElement>) =>
-      setForm((prev) => ({ ...prev, [field]: e.target.value }));
+    const task = editId
+      ? (state.tasks.find((candidate) => candidate.id === editId) ?? null)
+      : null;
+
+    if (editId && !task) return;
+
+    const formKey = `${editId ?? "new"}:${prefillDate ?? ""}`;
+    if (loadedFormKey.current === formKey) return;
+
+    loadedFormKey.current = formKey;
+    setForm(
+      task ? formFromTask(task) : { ...EMPTY_FORM, date: prefillDate ?? "" },
+    );
+  }, [editId, open, prefillDate, state.tasks]);
+
+  function setField(field: keyof TaskFormValues) {
+    return (event: React.ChangeEvent<HTMLInputElement>) => {
+      setForm((previous) => ({ ...previous, [field]: event.target.value }));
+    };
   }
 
   function submit() {
-    if (!form.title.trim()) return;
+    const title = form.title.trim();
+    if (!title) return;
 
-    const submission = {
-      ...form,
-      date: form.date || new Date().toISOString().split("T")[0],
-    };
+    const submission = { ...form, title };
 
     if (editId) {
       actions.updateTask(editId, submission);
     } else {
       actions.addTask(submission);
     }
+
     actions.closeSheet();
   }
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") submit();
+  function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter") submit();
   }
 
   const isEdit = !!editId;
@@ -87,7 +99,7 @@ export default function AddSheet() {
             placeholder="What needs to happen?"
             autoComplete="off"
             value={form.title}
-            onChange={set("title")}
+            onChange={setField("title")}
             onKeyDown={handleKeyDown}
           />
         </div>
@@ -101,7 +113,7 @@ export default function AddSheet() {
             className="sheet-input"
             type="date"
             value={form.date}
-            onChange={set("date")}
+            onChange={setField("date")}
           />
         </div>
 
@@ -115,7 +127,7 @@ export default function AddSheet() {
               className="sheet-input"
               type="time"
               value={form.startTime}
-              onChange={set("startTime")}
+              onChange={setField("startTime")}
             />
           </div>
           <div className="sheet-field">
@@ -127,7 +139,7 @@ export default function AddSheet() {
               className="sheet-input"
               type="time"
               value={form.endTime}
-              onChange={set("endTime")}
+              onChange={setField("endTime")}
             />
           </div>
         </div>

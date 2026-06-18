@@ -149,6 +149,9 @@ body::after {
 .sync-dot--synced {
     background: var(--green);
 }
+.sync-dot--local {
+    background: var(--amber);
+}
 .sync-dot--error {
     background: var(--red);
 }

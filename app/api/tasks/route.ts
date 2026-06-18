@@ -1,50 +1,51 @@
-import { createClient } from "redis";
 import { NextResponse } from "next/server";
-import type { Task } from "@/types";
+import { getTaskStoreKind, loadTasks, saveTasks } from "@/lib/taskStore";
+import { normalizeTasks } from "@/lib/tasks";
 
-const TASKS_KEY = "flow:tasks";
+export const dynamic = "force-dynamic";
 
-const client = createClient({
-  url: process.env.REDIS_URL,
-});
+function jsonResponse(body: unknown, init: ResponseInit = {}) {
+  const headers = new Headers(init.headers);
+  headers.set("Cache-Control", "no-store");
 
-client.on("error", (err) => console.error("Redis Client Error", err));
+  return NextResponse.json(body, { ...init, headers });
+}
 
-async function getRedis() {
-  if (!client.isOpen) await client.connect();
-  return client;
+async function readTasksFromRequest(request: Request) {
+  const body = (await request.json().catch(() => null)) as {
+    tasks?: unknown;
+  } | null;
+
+  if (!Array.isArray(body?.tasks)) {
+    return null;
+  }
+
+  return normalizeTasks(body.tasks);
 }
 
 export async function GET() {
   try {
-    const redis = await getRedis();
-    const data = await redis.get(TASKS_KEY);
-    const tasks = data ? JSON.parse(data) : [];
-    return NextResponse.json({ tasks });
-  } catch (err) {
-    console.error("[GET /api/tasks]", err);
-    return NextResponse.json({ error: "Failed to load" }, { status: 500 });
+    const tasks = await loadTasks();
+    return jsonResponse({ tasks, store: getTaskStoreKind() });
+  } catch (error) {
+    console.error("[GET /api/tasks]", error);
+    return jsonResponse({ error: "Failed to load tasks" }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const redis = await getRedis();
-    const body = await request.json();
-    const tasks: Task[] = body.tasks;
+    const tasks = await readTasksFromRequest(request);
 
-    if (!Array.isArray(tasks)) {
-      return NextResponse.json(
-        { error: "Invalid tasks array" },
-        { status: 400 },
-      );
+    if (!tasks) {
+      return jsonResponse({ error: "Invalid tasks array" }, { status: 400 });
     }
 
-    await redis.set(TASKS_KEY, JSON.stringify(tasks));
+    await saveTasks(tasks);
 
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error("[POST /api/tasks]", err);
-    return NextResponse.json({ error: "Failed to save" }, { status: 500 });
+    return jsonResponse({ ok: true, store: getTaskStoreKind() });
+  } catch (error) {
+    console.error("[POST /api/tasks]", error);
+    return jsonResponse({ error: "Failed to save tasks" }, { status: 500 });
   }
 }

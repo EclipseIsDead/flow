@@ -1,65 +1,22 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { AppProvider, useApp } from "@/context/AppContext";
-import type { Task, ViewMode } from "@/types";
+import { useRef } from "react";
+import { AppProvider, useApp, type SyncState } from "@/context/AppContext";
+import type { ViewMode } from "@/types";
 import ListView from "./ListView";
 import CalendarView from "./CalendarView";
 import AddSheet from "./AddSheet";
 import DetailSheet from "./DetailSheet";
-
-function SyncManager() {
-  const { state, actions } = useApp();
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const initialized = useRef(false);
-
-  useEffect(() => {
-    actions.setSyncState("loading");
-    fetch("/api/tasks")
-      .then((r) => {
-        if (!r.ok) throw new Error(String(r.status));
-        return r.json() as Promise<{ tasks: Task[] }>;
-      })
-      .then(({ tasks }) => {
-        actions.setTasks(tasks);
-        actions.setSyncState("synced");
-      })
-      .catch(() => actions.setSyncState("error"))
-      .finally(() => {
-        initialized.current = true;
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (!initialized.current) return;
-    actions.setSyncState("syncing");
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      fetch("/api/tasks", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ tasks: state.tasks }),
-      })
-        .then((r) => {
-          if (!r.ok) throw new Error(String(r.status));
-          actions.setSyncState("synced");
-        })
-        .catch(() => actions.setSyncState("error"));
-    }, 600);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.tasks]);
-
-  return null;
-}
+import TaskSync from "./TaskSync";
 
 function SyncIndicator() {
   const { state } = useApp();
-  const labels: Record<string, string> = {
+  const labels: Record<SyncState, string> = {
     idle: "--",
     loading: "loading",
     syncing: "saving",
     synced: "synced",
+    local: "local",
     error: "offline",
   };
   return (
@@ -178,7 +135,7 @@ function Inner() {
 
   return (
     <div className="app-root">
-      <SyncManager />
+      <TaskSync />
       <header className="topbar">
         <div className="topbar-logo">
           <span className="topbar-prompt">$</span>
