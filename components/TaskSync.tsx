@@ -9,8 +9,20 @@ const API_URL = "/api/tasks";
 const LOCAL_TASKS_KEY = "flow:tasks:v1";
 const SAVE_DELAY_MS = 600;
 
+type RemoteStore = "supabase" | "memory";
+
 interface TasksResponse {
   tasks: unknown;
+  store?: RemoteStore;
+}
+
+interface TaskSnapshot {
+  tasks: Task[];
+  store: RemoteStore | null;
+}
+
+function isDurableStore(store: RemoteStore | null): boolean {
+  return store === "supabase";
 }
 
 function loadLocalTasks(): Task[] {
@@ -39,16 +51,19 @@ function saveLocalTasks(tasks: Task[]): void {
   }
 }
 
-async function fetchTasks(signal: AbortSignal): Promise<Task[]> {
+async function fetchTasks(signal: AbortSignal): Promise<TaskSnapshot> {
   const response = await fetch(API_URL, { cache: "no-store", signal });
   if (!response.ok)
     throw new Error(`Failed to load tasks (${response.status})`);
 
   const payload = (await response.json()) as TasksResponse;
-  return normalizeTasks(payload.tasks);
+  return {
+    tasks: normalizeTasks(payload.tasks),
+    store: payload.store ?? null,
+  };
 }
 
-async function persistTasks(tasks: Task[]): Promise<void> {
+async function persistTasks(tasks: Task[]): Promise<RemoteStore | null> {
   const response = await fetch(API_URL, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -57,12 +72,16 @@ async function persistTasks(tasks: Task[]): Promise<void> {
 
   if (!response.ok)
     throw new Error(`Failed to save tasks (${response.status})`);
+
+  const payload = (await response.json()) as Partial<TasksResponse>;
+  return payload.store ?? null;
 }
 
 export default function TaskSync() {
   const { state, actions } = useApp();
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hydrated = useRef(false);
+  const remoteStore = useRef<RemoteStore | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -77,21 +96,27 @@ export default function TaskSync() {
       }
 
       try {
-        const remoteTasks = await fetchTasks(controller.signal);
+        const snapshot = await fetchTasks(controller.signal);
         if (cancelled) return;
 
+        remoteStore.current = snapshot.store;
+
         const shouldKeepLocalTasks =
-          localTasks.length > 0 && remoteTasks.length === 0;
-        const tasks = shouldKeepLocalTasks ? localTasks : remoteTasks;
+          localTasks.length > 0 && snapshot.tasks.length === 0;
+        const tasks = shouldKeepLocalTasks ? localTasks : snapshot.tasks;
 
         actions.setTasks(tasks);
         saveLocalTasks(tasks);
 
-        if (shouldKeepLocalTasks) {
-          await persistTasks(localTasks);
+        if (shouldKeepLocalTasks && isDurableStore(snapshot.store)) {
+          remoteStore.current = await persistTasks(localTasks);
         }
 
-        if (!cancelled) actions.setSyncState("synced");
+        if (!cancelled) {
+          actions.setSyncState(
+            isDurableStore(remoteStore.current) ? "synced" : "local",
+          );
+        }
       } catch {
         if (!cancelled && !controller.signal.aborted) {
           actions.setSyncState(localTasks.length > 0 ? "local" : "error");
@@ -113,12 +138,21 @@ export default function TaskSync() {
     if (!hydrated.current) return;
 
     saveLocalTasks(state.tasks);
+
+    if (remoteStore.current === "memory") {
+      actions.setSyncState("local");
+      return;
+    }
+
     actions.setSyncState("syncing");
 
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       persistTasks(state.tasks)
-        .then(() => actions.setSyncState("synced"))
+        .then((store) => {
+          remoteStore.current = store;
+          actions.setSyncState(isDurableStore(store) ? "synced" : "local");
+        })
         .catch(() => actions.setSyncState("local"));
     }, SAVE_DELAY_MS);
 

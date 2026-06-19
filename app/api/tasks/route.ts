@@ -3,6 +3,7 @@ import { getTaskStoreKind, loadTasks, saveTasks } from "@/lib/taskStore";
 import { normalizeTasks } from "@/lib/tasks";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 function jsonResponse(body: unknown, init: ResponseInit = {}) {
   const headers = new Headers(init.headers);
