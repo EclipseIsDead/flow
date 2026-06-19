@@ -1,6 +1,6 @@
 # Flow
 
-A minimal task manager with list, day, week, and month views.
+A minimal task manager with list, day, week, month, and daily protein tracking views.
 
 ## Run locally
 
@@ -22,7 +22,7 @@ Set these env vars in Vercel or `.env.local`:
 POSTGRES_URL="postgres://..."
 ```
 
-`POSTGRES_URL` is preferred because the app can auto-create its tiny `public.flow_state` table on first load.
+`POSTGRES_URL` is preferred because the app can auto-create its tiny `public.flow_state` and `public.flow_protein_days` tables on first load.
 
 If you do not want to expose a Postgres URL to the app server, you can use Supabase REST instead:
 

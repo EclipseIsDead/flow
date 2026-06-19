@@ -1,8 +1,10 @@
 import type { Subtask, Task, TaskFormValues } from "@/types";
-import { dateKey, newId } from "@/lib/utils";
+import { dateKey, newId, todayKey } from "@/lib/utils";
 
 const DATE_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+export const DEFAULT_TASK_START_TIME = "09:00";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -37,8 +39,8 @@ export function taskFieldsFromForm(
 ): Pick<Task, "title" | "date" | "startTime" | "endTime"> {
   return {
     title: values.title.trim(),
-    date: normalizeDateKey(values.date),
-    startTime: normalizeTime(values.startTime),
+    date: normalizeDateKey(values.date) ?? todayKey(),
+    startTime: normalizeTime(values.startTime) ?? DEFAULT_TASK_START_TIME,
     endTime: normalizeTime(values.endTime),
   };
 }
@@ -93,8 +95,8 @@ export function normalizeTask(value: unknown): Task | null {
   return {
     id: readString(value.id) || newId(),
     title,
-    date: normalizeDateKey(value.date),
-    startTime: normalizeTime(value.startTime),
+    date: normalizeDateKey(value.date) ?? todayKey(),
+    startTime: normalizeTime(value.startTime) ?? DEFAULT_TASK_START_TIME,
     endTime: normalizeTime(value.endTime),
     done: value.done === true,
     subtasks,

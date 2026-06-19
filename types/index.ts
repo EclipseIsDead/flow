@@ -16,7 +16,14 @@ export interface Task {
 }
 
 export type CalMode = "day" | "week" | "month";
-export type Pane = "list" | "cal";
+export type Pane = "list" | "cal" | "protein";
+
+export interface ProteinDay {
+  date: string; // "YYYY-MM-DD"
+  grams: number;
+  goalGrams: number;
+  updatedAt: number;
+}
 
 export interface TaskFormValues {
   title: string;
@@ -27,4 +34,5 @@ export interface TaskFormValues {
 
 export type ViewMode =
   | { kind: "list" }
-  | { kind: "cal"; calMode: CalMode; calOffset: number };
+  | { kind: "cal"; calMode: CalMode; calOffset: number }
+  | { kind: "protein" };

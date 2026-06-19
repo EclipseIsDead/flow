@@ -531,23 +531,31 @@ body::after {
 /* WEEK VIEW */
 .week-view {
     flex: 1;
-    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(150px, 1fr));
+    overflow-x: auto;
+    overflow-y: hidden;
     overscroll-behavior: contain;
     padding-bottom: 100px;
 }
 .week-day-block {
-    border-bottom: 1px solid var(--line);
+    min-width: 150px;
+    min-height: 0;
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+}
+.week-day-block:last-child {
+    border-right: none;
 }
 .wdb-header {
     display: flex;
     align-items: center;
-    padding: 7px 12px 6px;
-    gap: 10px;
+    padding: 7px 8px 6px;
+    gap: 7px;
     background: var(--bg1);
     border-bottom: 1px solid var(--line);
-    position: sticky;
-    top: 0;
-    z-index: 10;
+    flex-shrink: 0;
 }
 .wdb-name {
     font-size: 10px;
@@ -584,7 +592,10 @@ body::after {
     color: var(--green);
 }
 .wdb-tasks {
-    padding: 4px 8px 6px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px 6px 8px;
     display: flex;
     flex-direction: column;
     gap: 3px;
@@ -622,6 +633,18 @@ body::after {
     width: 90px;
     flex-shrink: 0;
     white-space: nowrap;
+}
+.week-view .cal-chip {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+    padding: 7px 8px;
+}
+.week-view .cc-time {
+    width: 100%;
+}
+.week-view .cc-title {
+    min-width: 0;
 }
 .cc-title {
     flex: 1;
@@ -909,6 +932,12 @@ body::after {
 .sheet-row2 .sheet-field {
     flex: 1;
 }
+.sheet-error {
+    margin: -2px 0 10px;
+    color: var(--red);
+    font-size: 11px;
+    line-height: 1.4;
+}
 .sheet-actions {
     display: flex;
     gap: 8px;
@@ -1128,6 +1157,218 @@ body::after {
     font-style: italic;
     padding: 4px 0;
     margin-bottom: 12px;
+}
+
+/* ── PROTEIN VIEW ── */
+.protein-view {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 12px 14px 100px;
+    overscroll-behavior: contain;
+}
+.protein-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.protein-kicker {
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+.protein-date {
+    color: var(--bright);
+    font-size: 17px;
+    line-height: 1.2;
+}
+.protein-sync {
+    color: var(--muted);
+    border: 1px solid var(--line2);
+    border-radius: 3px;
+    padding: 3px 6px;
+    font-size: 10px;
+}
+.protein-sync--synced {
+    color: var(--green);
+    border-color: var(--green);
+}
+.protein-sync--saving,
+.protein-sync--loading,
+.protein-sync--local {
+    color: var(--amber);
+    border-color: var(--amber);
+}
+.protein-sync--error {
+    color: var(--red);
+    border-color: var(--red);
+}
+.protein-nav,
+.protein-entry-row,
+.protein-settings-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.protein-nav-btn,
+.protein-today-btn,
+.protein-add-btn,
+.protein-chip {
+    font-family: var(--mono);
+    cursor: pointer;
+    border-radius: 4px;
+}
+.protein-nav-btn {
+    width: 38px;
+    background: var(--bg1);
+    color: var(--text);
+    border: 1px solid var(--line2);
+    font-size: 18px;
+}
+.protein-today-btn,
+.protein-chip {
+    background: none;
+    border: 1px solid var(--line2);
+    color: var(--muted);
+    padding: 9px 10px;
+    font-size: 11px;
+}
+.protein-date-input,
+.protein-input,
+.protein-goal-input {
+    background: var(--bg);
+    border: 1px solid var(--line2);
+    border-radius: 4px;
+    color: var(--bright);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 9px 10px;
+    outline: none;
+}
+.protein-date-input {
+    flex: 1;
+}
+.protein-card {
+    background: var(--bg1);
+    border: 1px solid var(--line2);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+.protein-total-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.protein-total {
+    color: var(--green);
+    font-size: 42px;
+    line-height: 1;
+}
+.protein-unit,
+.protein-goal,
+.protein-remaining,
+.protein-goal-unit {
+    color: var(--muted);
+}
+.protein-progress {
+    height: 8px;
+    background: var(--bg);
+    border: 1px solid var(--line2);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+.protein-progress-fill {
+    height: 100%;
+    background: var(--green);
+    box-shadow: 0 0 18px rgba(57, 255, 110, 0.3);
+}
+.protein-entry-row .protein-input {
+    flex: 1;
+}
+.protein-add-btn {
+    background: var(--green);
+    border: none;
+    color: var(--bg);
+    font-weight: 700;
+    padding: 0 16px;
+}
+.protein-quick-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.protein-chip:active,
+.protein-today-btn:active,
+.protein-nav-btn:active {
+    border-color: var(--green);
+    color: var(--green);
+}
+.protein-settings-row {
+    align-items: center;
+    background: var(--bg1);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 8px 10px;
+}
+.protein-label {
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    flex: 1;
+}
+.protein-goal-input {
+    width: 84px;
+}
+.protein-history {
+    margin-top: 16px;
+}
+.protein-history-title {
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+.protein-history-row {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 6px 10px;
+    padding: 9px 10px;
+    margin-bottom: 5px;
+    background: var(--bg1);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    text-align: left;
+    cursor: pointer;
+}
+.protein-history-row--active {
+    border-color: var(--green);
+}
+.protein-history-bar {
+    grid-column: 1 / -1;
+    height: 4px;
+    background: var(--bg);
+    border-radius: 999px;
+    overflow: hidden;
+}
+.protein-history-bar span {
+    display: block;
+    height: 100%;
+    background: var(--green);
 }
 
 /* ── View containers (fill .main-view as flex column) ── */

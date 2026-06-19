@@ -2,12 +2,15 @@
 
 import { useRef } from "react";
 import { AppProvider, useApp, type SyncState } from "@/context/AppContext";
-import type { ViewMode } from "@/types";
+import type { Pane, ViewMode } from "@/types";
 import ListView from "./ListView";
 import CalendarView from "./CalendarView";
+import ProteinView from "./ProteinView";
 import AddSheet from "./AddSheet";
 import DetailSheet from "./DetailSheet";
 import TaskSync from "./TaskSync";
+
+const PANES: Pane[] = ["list", "cal", "protein"];
 
 function SyncIndicator() {
   const { state } = useApp();
@@ -48,7 +51,9 @@ function CalModeToggle() {
 function MainView({ mode }: { mode: ViewMode }) {
   return (
     <div className="main-view">
-      {mode.kind === "list" ? <ListView /> : <CalendarView />}
+      {mode.kind === "list" && <ListView />}
+      {mode.kind === "cal" && <CalendarView />}
+      {mode.kind === "protein" && <ProteinView />}
     </div>
   );
 }
@@ -83,8 +88,10 @@ function SwipeRegion({ children }: { children: React.ReactNode }) {
         touchStart.current = null;
         isSwiping.current = false;
         if (Math.abs(dx) < 44) return;
-        if (dx < 0 && state.pane === "list") actions.setPane("cal");
-        else if (dx > 0 && state.pane === "cal") actions.setPane("list");
+
+        const currentIndex = PANES.indexOf(state.pane);
+        const nextPane = PANES[currentIndex + (dx < 0 ? 1 : -1)];
+        if (nextPane) actions.setPane(nextPane);
       }}
     >
       {children}
@@ -96,22 +103,22 @@ function ViewDots() {
   const { state, actions } = useApp();
   return (
     <div className="view-dots">
-      <button
-        className={`vd${state.pane === "list" ? " vd--active" : ""}`}
-        onClick={() => actions.setPane("list")}
-        aria-label="List view"
-      />
-      <button
-        className={`vd${state.pane === "cal" ? " vd--active" : ""}`}
-        onClick={() => actions.setPane("cal")}
-        aria-label="Calendar view"
-      />
+      {PANES.map((pane) => (
+        <button
+          key={pane}
+          className={`vd${state.pane === pane ? " vd--active" : ""}`}
+          onClick={() => actions.setPane(pane)}
+          aria-label={`${pane} view`}
+        />
+      ))}
     </div>
   );
 }
 
 function Fab() {
   const { state, actions } = useApp();
+  if (state.pane === "protein") return null;
+
   return (
     <button
       className={`fab${state.sheet.open ? " fab--open" : ""}`}
@@ -131,7 +138,9 @@ function Inner() {
   const viewMode: ViewMode =
     state.pane === "list"
       ? { kind: "list" }
-      : { kind: "cal", calMode: state.calMode, calOffset: state.calOffset };
+      : state.pane === "cal"
+        ? { kind: "cal", calMode: state.calMode, calOffset: state.calOffset }
+        : { kind: "protein" };
 
   return (
     <div className="app-root">

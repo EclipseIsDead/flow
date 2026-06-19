@@ -2,20 +2,28 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/context/AppContext";
+import {
+  DEFAULT_TASK_START_TIME,
+  normalizeDateKey,
+  normalizeTime,
+} from "@/lib/tasks";
+import { todayKey } from "@/lib/utils";
 import type { Task, TaskFormValues } from "@/types";
 
-const EMPTY_FORM: TaskFormValues = {
-  title: "",
-  date: "",
-  startTime: "",
-  endTime: "",
-};
+function emptyForm(prefillDate?: string): TaskFormValues {
+  return {
+    title: "",
+    date: normalizeDateKey(prefillDate) ?? todayKey(),
+    startTime: DEFAULT_TASK_START_TIME,
+    endTime: "",
+  };
+}
 
 function formFromTask(task: Task): TaskFormValues {
   return {
     title: task.title,
-    date: task.date ?? "",
-    startTime: task.startTime ?? "",
+    date: task.date ?? todayKey(),
+    startTime: task.startTime ?? DEFAULT_TASK_START_TIME,
     endTime: task.endTime ?? "",
   };
 }
@@ -24,13 +32,15 @@ export default function AddSheet() {
   const { state, actions } = useApp();
   const { open, editId, prefillDate } = state.sheet;
 
-  const [form, setForm] = useState<TaskFormValues>(EMPTY_FORM);
+  const [form, setForm] = useState<TaskFormValues>(() => emptyForm());
+  const [error, setError] = useState<string | null>(null);
   const loadedFormKey = useRef<string | null>(null);
 
   useEffect(() => {
     if (!open) {
       loadedFormKey.current = null;
-      setForm(EMPTY_FORM);
+      setError(null);
+      setForm(emptyForm());
       return;
     }
 
@@ -44,22 +54,40 @@ export default function AddSheet() {
     if (loadedFormKey.current === formKey) return;
 
     loadedFormKey.current = formKey;
-    setForm(
-      task ? formFromTask(task) : { ...EMPTY_FORM, date: prefillDate ?? "" },
-    );
+    setError(null);
+    setForm(task ? formFromTask(task) : emptyForm(prefillDate));
   }, [editId, open, prefillDate, state.tasks]);
 
   function setField(field: keyof TaskFormValues) {
     return (event: React.ChangeEvent<HTMLInputElement>) => {
+      setError(null);
       setForm((previous) => ({ ...previous, [field]: event.target.value }));
     };
   }
 
   function submit() {
     const title = form.title.trim();
-    if (!title) return;
+    const date = normalizeDateKey(form.date);
+    const startTime = normalizeTime(form.startTime);
 
-    const submission = { ...form, title };
+    if (!title || !date || !startTime) {
+      setError("title, date, and start time are required");
+      return;
+    }
+
+    const endTime = normalizeTime(form.endTime) ?? "";
+
+    if (endTime && endTime <= startTime) {
+      setError("end time must be after start time");
+      return;
+    }
+
+    const submission: TaskFormValues = {
+      title,
+      date,
+      startTime,
+      endTime,
+    };
 
     if (editId) {
       actions.updateTask(editId, submission);
@@ -101,6 +129,7 @@ export default function AddSheet() {
             value={form.title}
             onChange={setField("title")}
             onKeyDown={handleKeyDown}
+            required
           />
         </div>
 
@@ -114,6 +143,7 @@ export default function AddSheet() {
             type="date"
             value={form.date}
             onChange={setField("date")}
+            required
           />
         </div>
 
@@ -128,6 +158,7 @@ export default function AddSheet() {
               type="time"
               value={form.startTime}
               onChange={setField("startTime")}
+              required
             />
           </div>
           <div className="sheet-field">
@@ -143,6 +174,8 @@ export default function AddSheet() {
             />
           </div>
         </div>
+
+        {error && <div className="sheet-error">{error}</div>}
 
         <div className="sheet-actions">
           <button className="sheet-cancel" onClick={actions.closeSheet}>

@@ -8,7 +8,6 @@ import {
   sortTasksForDay,
   dateKey,
   todayKey,
-  fmt12,
   fmtRange,
   durMins,
   fmtDur,
@@ -18,9 +17,11 @@ import {
 } from "@/lib/utils";
 import type { Task } from "@/types";
 
-const DEFAULT_DAY_HOURS = [
-  7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-];
+const DAY_HOURS = Array.from({ length: 24 }, (_, hour) => hour);
+
+function fmtHour24(hour: number): string {
+  return `${String(hour).padStart(2, "0")}:00`;
+}
 
 function ChipCheck({ task }: { task: Task }) {
   const { actions } = useApp();
@@ -87,56 +88,21 @@ function DayView() {
   const dk = dateKey(focus);
 
   const dayTasks = sortTasksForDay(state.tasks.filter((t) => t.date === dk));
-
-  const untimed = dayTasks.filter((t) => !t.startTime);
   const timed = dayTasks.filter((t) => t.startTime);
-
-  const hoursSet = new Set(DEFAULT_DAY_HOURS);
-  timed.forEach((t) => hoursSet.add(parseInt(t.startTime!.split(":")[0])));
-  const hours = [...hoursSet].sort((a, b) => a - b);
 
   return (
     <div className="day-view">
-      {untimed.length > 0 && (
-        <div className="day-unscheduled">
-          <div className="day-unscheduled-label">UNSCHEDULED</div>
-          {untimed.map((t) => {
-            const subDone = t.subtasks.filter((s) => s.done).length;
-            return (
-              <div
-                key={t.id}
-                className={`day-block${t.done ? " day-block--done" : ""}`}
-                onClick={() => actions.openDetail(t.id)}
-              >
-                <div
-                  className={`day-block-title${t.done ? " day-block-title--done" : ""}`}
-                >
-                  {t.title}
-                </div>
-                {t.subtasks.length > 0 && (
-                  <div className="day-block-dur">
-                    {subDone}/{t.subtasks.length} subtasks
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
       {dayTasks.length === 0 && (
         <div className="day-empty">— nothing here —</div>
       )}
 
-      {hours.map((h) => {
+      {DAY_HOURS.map((h) => {
         const hTasks = timed.filter(
           (t) => parseInt(t.startTime!.split(":")[0]) === h,
         );
         return (
           <div className="day-hour-row" key={h}>
-            <div className="day-hour-time">
-              {fmt12(`${String(h).padStart(2, "0")}:00`)}
-            </div>
+            <div className="day-hour-time">{fmtHour24(h)}</div>
             <div className="day-hour-slot">
               {hTasks.map((t) => {
                 const dur = durMins(t.startTime, t.endTime);
